@@ -18,7 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalDriver;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalDriverFactory;
@@ -31,13 +31,13 @@ import java.util.concurrent.Executor;
 /** {@link LeaderRetrievalDriverFactory} for Consul. */
 public class ConsulLeaderRetrievalDriverFactory implements LeaderRetrievalDriverFactory {
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final Configuration configuration;
     private final String componentId;
     private final Executor executor;
 
     public ConsulLeaderRetrievalDriverFactory(
-            ConsulClient client,
+            VertxConsulClientAdapter client,
             Configuration configuration,
             String componentId,
             Executor executor) {

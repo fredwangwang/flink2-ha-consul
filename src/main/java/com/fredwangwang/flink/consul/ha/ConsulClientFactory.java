@@ -18,8 +18,10 @@
 
 package com.fredwangwang.flink.consul.ha;
 
-import com.ecwid.consul.v1.ConsulClient;
 import com.fredwangwang.flink.consul.ha.configuration.ConsulHighAvailabilityOptions;
+import io.vertx.core.Vertx;
+import io.vertx.ext.consul.ConsulClient;
+import io.vertx.ext.consul.ConsulClientOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
@@ -28,7 +30,10 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 /**
- * Creates a Consul client from Flink configuration. Supports token-based authentication only.
+ * Creates a Consul client from Flink configuration using Vert.x Consul client.
+ * Supports ACL token via {@code high-availability.consul.acl-token}.
+ *
+ * @see <a href="https://vertx.io/docs/vertx-consul-client/java/">Vert.x Consul Client</a>
  */
 public final class ConsulClientFactory {
 
@@ -40,23 +45,23 @@ public final class ConsulClientFactory {
      * Builds a Consul client using the given configuration. If {@code high-availability.consul.acl-token}
      * is set, the client will use it for all requests.
      */
-    public static ConsulClient createConsulClient(Configuration configuration) {
+    public static VertxConsulClientAdapter createConsulClient(Configuration configuration) {
         String host = configuration.get(ConsulHighAvailabilityOptions.HA_CONSUL_HOST);
         int port = configuration.get(ConsulHighAvailabilityOptions.HA_CONSUL_PORT);
         Preconditions.checkNotNull(host, "Consul host must not be null");
-        // Token auth: set CONSUL_HTTP_TOKEN env or use Consul agent config; ecwid consul-api 1.4.5
-        // does not expose setToken on ConsulClient; use QueryParams with token for per-request auth if needed.
-        return new ConsulClient(host, port);
-    }
 
-    /**
-     * Sets the ACL token on an existing client (e.g. for use with prepared client).
-     */
-    /**
-     * Token auth is supported via CONSUL_HTTP_TOKEN environment variable or Consul agent config.
-     * ecwid consul-api 1.4.5 does not expose a setToken method on ConsulClient.
-     */
-    public static void setAclTokenIfPresent(ConsulClient client, Configuration configuration) {
-        // No-op; use env or agent config for token.
+        ConsulClientOptions options = new ConsulClientOptions()
+                .setHost(host)
+                .setPort(port);
+
+        String aclToken = configuration.get(ConsulHighAvailabilityOptions.HA_CONSUL_ACL_TOKEN);
+        if (aclToken != null && !aclToken.isEmpty()) {
+            options.setAclToken(aclToken);
+            LOG.debug("Consul client configured with ACL token");
+        }
+
+        Vertx vertx = Vertx.vertx();
+        ConsulClient consulClient = ConsulClient.create(vertx, options);
+        return new VertxConsulClientAdapter(vertx, consulClient);
     }
 }

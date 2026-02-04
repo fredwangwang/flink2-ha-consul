@@ -18,9 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.QueryParams;
-import com.ecwid.consul.v1.session.model.NewSession;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,14 +33,14 @@ public final class ConsulSessionActivator {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulSessionActivator.class);
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final Executor executor;
     private final int sessionTtlSeconds;
     private volatile boolean running;
     private final ConsulSessionHolder holder;
 
     public ConsulSessionActivator(
-            ConsulClient client,
+            VertxConsulClientAdapter client,
             Executor executor,
             int sessionTtlSeconds,
             ConsulSessionHolder holder) {
@@ -87,10 +85,7 @@ public final class ConsulSessionActivator {
     }
 
     private void createSession() {
-        NewSession newSession = new NewSession();
-        newSession.setName("flink-ha");
-        newSession.setTtl(sessionTtlSeconds + "s");
-        String id = client.sessionCreate(newSession, QueryParams.DEFAULT).getValue();
+        String id = client.sessionCreate("flink-ha", sessionTtlSeconds);
         if (id != null) {
             holder.setSessionId(id);
             LOG.debug("Consul session created: {}", id);
@@ -101,7 +96,7 @@ public final class ConsulSessionActivator {
         String id = holder.getSessionId();
         if (id == null || id.isEmpty()) return;
         try {
-            client.renewSession(id, QueryParams.DEFAULT);
+            client.renewSession(id);
             LOG.trace("Consul session renewed: {}", id);
         } catch (Exception e) {
             LOG.warn("Consul session renew failed, session may be invalid", e);
@@ -113,7 +108,7 @@ public final class ConsulSessionActivator {
         String id = holder.getSessionId();
         if (id == null || id.isEmpty()) return;
         try {
-            client.sessionDestroy(id, QueryParams.DEFAULT);
+            client.sessionDestroy(id);
             LOG.debug("Consul session destroyed: {}", id);
         } catch (Exception e) {
             LOG.warn("Consul session destroy failed", e);

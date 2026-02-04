@@ -18,7 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.leaderelection.LeaderElectionDriver;
 import org.apache.flink.runtime.leaderelection.LeaderElectionDriverFactory;
@@ -29,12 +29,12 @@ import java.util.concurrent.Executor;
 /** Factory for {@link ConsulLeaderElectionDriver}. */
 public class ConsulLeaderElectionDriverFactory implements LeaderElectionDriverFactory {
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final Configuration configuration;
     private final Executor executor;
 
     public ConsulLeaderElectionDriverFactory(
-            ConsulClient client, Configuration configuration, Executor executor) {
+            VertxConsulClientAdapter client, Configuration configuration, Executor executor) {
         this.client = Preconditions.checkNotNull(client);
         this.configuration = Preconditions.checkNotNull(configuration);
         this.executor = Preconditions.checkNotNull(executor);

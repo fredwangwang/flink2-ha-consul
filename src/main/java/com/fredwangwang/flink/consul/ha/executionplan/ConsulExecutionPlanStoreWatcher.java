@@ -18,10 +18,8 @@
 
 package com.fredwangwang.flink.consul.ha.executionplan;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.QueryParams;
-import com.ecwid.consul.v1.Response;
 import com.fredwangwang.flink.consul.ha.ConsulUtils;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.jobmanager.ExecutionPlanStore;
@@ -43,7 +41,7 @@ public class ConsulExecutionPlanStoreWatcher implements org.apache.flink.runtime
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulExecutionPlanStoreWatcher.class);
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final String basePath;
     private final Executor executor;
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -51,7 +49,7 @@ public class ConsulExecutionPlanStoreWatcher implements org.apache.flink.runtime
     private volatile Set<String> lastKeys = new HashSet<>();
 
     public ConsulExecutionPlanStoreWatcher(
-            ConsulClient client,
+            VertxConsulClientAdapter client,
             Configuration configuration,
             Executor executor) {
         this.client = Preconditions.checkNotNull(client);
@@ -76,8 +74,7 @@ public class ConsulExecutionPlanStoreWatcher implements org.apache.flink.runtime
         while (running.get()) {
             try {
                 List<String> keys = client.getKVKeysOnly(
-                        basePath.isEmpty() ? "/" : basePath + "/",
-                        QueryParams.DEFAULT).getValue();
+                        basePath.isEmpty() ? "/" : basePath + "/");
                 Set<String> current = new HashSet<>();
                 if (keys != null) {
                     for (String fullKey : keys) {

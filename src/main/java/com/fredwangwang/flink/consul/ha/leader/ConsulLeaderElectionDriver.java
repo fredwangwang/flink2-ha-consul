@@ -18,11 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.OperationException;
-import com.ecwid.consul.v1.Response;
-import com.ecwid.consul.v1.kv.model.GetBinaryValue;
-import com.ecwid.consul.v1.kv.model.PutParams;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.ConsulUtils;
 import com.fredwangwang.flink.consul.ha.configuration.ConsulHighAvailabilityOptions;
 import org.apache.flink.configuration.Configuration;
@@ -45,7 +41,7 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulLeaderElectionDriver.class);
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final Configuration configuration;
     private final LeaderElectionDriver.Listener listener;
     private final Executor executor;
@@ -56,7 +52,7 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
     private volatile boolean hasLeadership;
 
     public ConsulLeaderElectionDriver(
-            ConsulClient client,
+            VertxConsulClientAdapter client,
             Configuration configuration,
             LeaderElectionDriver.Listener listener,
             Executor executor) {
@@ -164,12 +160,10 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
     }
 
     private boolean tryAcquireLatchKey(String sessionId) {
-        PutParams putParams = new PutParams();
-        putParams.setAcquireSession(sessionId);
         try {
-            Response<Boolean> resp = client.setKVBinaryValue(leaderLatchKey, new byte[]{1}, putParams);
-            return Boolean.TRUE.equals(resp.getValue());
-        } catch (OperationException e) {
+            Boolean acquired = client.setKVBinaryValue(leaderLatchKey, new byte[]{1}, null, sessionId, null);
+            return Boolean.TRUE.equals(acquired);
+        } catch (Exception e) {
             return false;
         }
     }
@@ -177,10 +171,8 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
     private void releaseLatchKey() {
         String sessionId = sessionHolder.getSessionId();
         if (sessionId == null || sessionId.isEmpty()) return;
-        PutParams putParams = new PutParams();
-        putParams.setReleaseSession(sessionId);
         try {
-            client.setKVBinaryValue(leaderLatchKey, new byte[0], putParams);
+            client.setKVBinaryValue(leaderLatchKey, new byte[0], null, null, sessionId);
         } catch (Exception e) {
             LOG.warn("Failed to release leader latch key", e);
         }

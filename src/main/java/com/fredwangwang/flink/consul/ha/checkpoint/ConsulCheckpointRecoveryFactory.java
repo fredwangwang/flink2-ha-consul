@@ -18,7 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha.checkpoint;
 
-import com.ecwid.consul.v1.ConsulClient;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.ConsulUtils;
 import com.fredwangwang.flink.consul.ha.leader.ConsulSessionHolder;
 import com.fredwangwang.flink.consul.ha.store.ConsulKVStateHandleStore;
@@ -46,13 +46,13 @@ import static org.apache.flink.runtime.util.ZooKeeperUtils.createFileSystemState
  */
 public class ConsulCheckpointRecoveryFactory implements CheckpointRecoveryFactory {
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final Configuration config;
     private final Executor executor;
     private final ConsulSessionHolder sessionHolder;
 
     public ConsulCheckpointRecoveryFactory(
-            ConsulClient client,
+            VertxConsulClientAdapter client,
             Configuration config,
             Executor executor,
             ConsulSessionHolder sessionHolder) {

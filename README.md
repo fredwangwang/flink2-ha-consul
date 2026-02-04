@@ -51,7 +51,7 @@ high-availability.consul.blocking-query-wait: 30s
 
 ### Authentication
 
-Token-based authentication is supported via the Consul agent configuration or the `CONSUL_HTTP_TOKEN` environment variable. The option `high-availability.consul.acl-token` is defined but not applied by the ecwid consul-api client in this version; use agent config or env for token auth.
+ACL token authentication is supported via the `high-availability.consul.acl-token` configuration option. The implementation uses the [Vert.x Consul Client](https://vertx.io/docs/vertx-consul-client/java/), which is actively maintained and supports the `aclToken` option on the client.
 
 ## Options (aligned with ZooKeeper HA)
 
@@ -63,7 +63,7 @@ Token-based authentication is supported via the Consul agent configuration or th
 | `high-availability.consul.path.leader` | leader | Path segment for leader election |
 | `high-availability.consul.path.execution-plans` | execution-plans | Path for execution plans |
 | `high-availability.consul.path.jobs` | jobs | Path for job data (checkpoints, etc.) |
-| `high-availability.consul.acl-token` | (none) | Consul ACL token (use env/agent for now) |
+| `high-availability.consul.acl-token` | (none) | Consul ACL token for authenticated requests |
 | `high-availability.consul.session-ttl` | 30s | Session TTL for leader latch |
 | `high-availability.consul.blocking-query-wait` | 30s | Blocking query wait for leader retrieval |
 

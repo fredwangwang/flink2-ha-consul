@@ -18,10 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha.leader;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.QueryParams;
-import com.ecwid.consul.v1.Response;
-import com.ecwid.consul.v1.kv.model.GetBinaryValue;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.ConsulUtils;
 import com.fredwangwang.flink.consul.ha.configuration.ConsulHighAvailabilityOptions;
 import org.apache.flink.configuration.Configuration;
@@ -46,7 +43,7 @@ public class ConsulLeaderRetrievalDriver implements LeaderRetrievalDriver {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulLeaderRetrievalDriver.class);
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final String connectionInfoKey;
     private final LeaderRetrievalEventHandler eventHandler;
     private final FatalErrorHandler fatalErrorHandler;
@@ -55,7 +52,7 @@ public class ConsulLeaderRetrievalDriver implements LeaderRetrievalDriver {
     private final AtomicBoolean running = new AtomicBoolean(true);
 
     public ConsulLeaderRetrievalDriver(
-            ConsulClient client,
+            VertxConsulClientAdapter client,
             Configuration configuration,
             String componentId,
             LeaderRetrievalEventHandler eventHandler,
@@ -84,13 +81,8 @@ public class ConsulLeaderRetrievalDriver implements LeaderRetrievalDriver {
         long index = 0;
         while (running.get()) {
             try {
-                QueryParams params = QueryParams.Builder.builder()
-                        .setIndex(index)
-                        .setWaitTime(waitTimeSeconds)
-                        .build();
-                Response<GetBinaryValue> response = client.getKVBinaryValue(connectionInfoKey, params);
+                VertxConsulClientAdapter.BinaryKeyValue value = client.getKVBinaryValue(connectionInfoKey, index, waitTimeSeconds);
                 if (!running.get()) break;
-                GetBinaryValue value = response.getValue();
                 if (value != null) {
                     index = value.getModifyIndex();
                     byte[] data = value.getValue();

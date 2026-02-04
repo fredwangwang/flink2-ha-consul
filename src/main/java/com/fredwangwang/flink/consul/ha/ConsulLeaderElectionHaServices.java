@@ -18,9 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.QueryParams;
-import com.ecwid.consul.v1.Response;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.checkpoint.ConsulCheckpointRecoveryFactory;
 import com.fredwangwang.flink.consul.ha.configuration.ConsulHighAvailabilityOptions;
 import com.fredwangwang.flink.consul.ha.executionplan.ConsulExecutionPlanStoreUtil;
@@ -60,12 +58,12 @@ public class ConsulLeaderElectionHaServices extends AbstractHaServices {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulLeaderElectionHaServices.class);
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final ConsulSessionHolder stateStoreSessionHolder;
     private final ConsulSessionActivator stateStoreSessionActivator;
 
     public ConsulLeaderElectionHaServices(
-            ConsulClient client,
+            VertxConsulClientAdapter client,
             Configuration configuration,
             Executor executor,
             BlobStoreService blobStoreService) throws Exception {
@@ -114,6 +112,7 @@ public class ConsulLeaderElectionHaServices extends AbstractHaServices {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
+        client.close();
     }
 
     @Override
@@ -132,8 +131,7 @@ public class ConsulLeaderElectionHaServices extends AbstractHaServices {
 
     private void deleteKeysRecursive(String prefix) {
         try {
-            Response<List<String>> r = client.getKVKeysOnly(prefix.isEmpty() ? "/" : prefix + "/", QueryParams.DEFAULT);
-            List<String> keys = r != null ? r.getValue() : null;
+            List<String> keys = client.getKVKeysOnly(prefix.isEmpty() ? "/" : prefix + "/");
             if (keys == null) return;
             for (String key : keys) {
                 client.deleteKVValue(key);

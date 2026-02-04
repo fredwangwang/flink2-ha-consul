@@ -18,7 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha;
 
-import com.ecwid.consul.v1.ConsulClient;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.leader.ConsulLeaderRetrievalDriverFactory;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.highavailability.ClientHighAvailabilityServices;
@@ -35,11 +35,11 @@ import javax.annotation.Nonnull;
  */
 public class ConsulClientHAServices implements ClientHighAvailabilityServices {
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final Configuration configuration;
 
     public ConsulClientHAServices(
-            @Nonnull ConsulClient client,
+            @Nonnull VertxConsulClientAdapter client,
             @Nonnull Configuration configuration) {
         this.client = Preconditions.checkNotNull(client);
         this.configuration = Preconditions.checkNotNull(configuration);
@@ -57,6 +57,6 @@ public class ConsulClientHAServices implements ClientHighAvailabilityServices {
 
     @Override
     public void close() throws Exception {
-        // ConsulClient has no close(); connection is not long-lived.
+        client.close();
     }
 }

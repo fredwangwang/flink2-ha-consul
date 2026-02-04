@@ -18,7 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha;
 
-import com.ecwid.consul.v1.ConsulClient;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.blob.BlobStoreService;
 import org.apache.flink.runtime.blob.BlobUtils;
@@ -37,13 +37,13 @@ public class ConsulHaServicesFactory implements HighAvailabilityServicesFactory 
     @Override
     public HighAvailabilityServices createHAServices(Configuration configuration, Executor executor) throws Exception {
         BlobStoreService blobStoreService = BlobUtils.createBlobStoreFromConfig(configuration);
-        ConsulClient client = ConsulClientFactory.createConsulClient(configuration);
+        VertxConsulClientAdapter client = ConsulClientFactory.createConsulClient(configuration);
         return new ConsulLeaderElectionHaServices(client, configuration, executor, blobStoreService);
     }
 
     @Override
     public ClientHighAvailabilityServices createClientHAServices(Configuration configuration) throws Exception {
-        ConsulClient client = ConsulClientFactory.createConsulClient(configuration);
+        VertxConsulClientAdapter client = ConsulClientFactory.createConsulClient(configuration);
         return new ConsulClientHAServices(client, configuration);
     }
 }

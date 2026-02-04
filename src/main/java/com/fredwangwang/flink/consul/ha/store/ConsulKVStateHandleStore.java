@@ -18,12 +18,8 @@
 
 package com.fredwangwang.flink.consul.ha.store;
 
-import com.ecwid.consul.v1.ConsulClient;
-import com.ecwid.consul.v1.QueryParams;
-import com.ecwid.consul.v1.Response;
-import com.ecwid.consul.v1.kv.model.GetBinaryValue;
-import com.ecwid.consul.v1.kv.model.PutParams;
 import com.fredwangwang.flink.consul.ha.ConsulUtils;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.leader.ConsulSessionHolder;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.runtime.persistence.IntegerResourceVersion;
@@ -60,14 +56,14 @@ public class ConsulKVStateHandleStore<T extends Serializable>
     private static final Logger LOG = LoggerFactory.getLogger(ConsulKVStateHandleStore.class);
     private static final String LOCK_PREFIX = "lock/";
 
-    private final ConsulClient client;
+    private final VertxConsulClientAdapter client;
     private final String basePath;
     private final RetrievableStateStorageHelper<T> storage;
     private final ConsulSessionHolder sessionHolder;
     private final Set<String> lockedNames = ConcurrentHashMap.newKeySet();
 
     public ConsulKVStateHandleStore(
-            ConsulClient client,
+            VertxConsulClientAdapter client,
             String basePath,
             RetrievableStateStorageHelper<T> storage,
             ConsulSessionHolder sessionHolder) {
@@ -95,9 +91,7 @@ public class ConsulKVStateHandleStore<T extends Serializable>
             client.setKVBinaryValue(key, bytes);
             String sid = sessionHolder.getSessionId();
             if (sid != null && !sid.isEmpty()) {
-                PutParams lockParams = new PutParams();
-                lockParams.setAcquireSession(sid);
-                Boolean acquired = client.setKVBinaryValue(lockKey(name), new byte[]{1}, lockParams).getValue();
+                Boolean acquired = client.setKVBinaryValue(lockKey(name), new byte[]{1}, null, sid, null);
                 if (Boolean.TRUE.equals(acquired)) {
                     lockedNames.add(name);
                 }
@@ -117,12 +111,11 @@ public class ConsulKVStateHandleStore<T extends Serializable>
     public void replace(String name, IntegerResourceVersion resourceVersion, T state)
             throws PossibleInconsistentStateException, Exception {
         String key = handleKey(name);
-        PutParams params = new PutParams();
-        params.setCas(Long.valueOf(resourceVersion.getValue()));
+        Long casIndex = Long.valueOf(resourceVersion.getValue());
         RetrievableStateHandle<T> handle = storage.store(state);
         byte[] bytes = serializeOrDiscard(handle);
         try {
-            Boolean ok = client.setKVBinaryValue(key, bytes, params).getValue();
+            Boolean ok = client.setKVBinaryValue(key, bytes, casIndex, null, null);
             if (!Boolean.TRUE.equals(ok)) {
                 handle.discardState();
                 throw new StateHandleStore.AlreadyExistException("CAS failed for " + name);
@@ -141,8 +134,7 @@ public class ConsulKVStateHandleStore<T extends Serializable>
 
     @Override
     public IntegerResourceVersion exists(String name) throws Exception {
-        Response<GetBinaryValue> r = client.getKVBinaryValue(handleKey(name), QueryParams.DEFAULT);
-        GetBinaryValue v = r.getValue();
+        VertxConsulClientAdapter.BinaryKeyValue v = client.getKVBinaryValue(handleKey(name));
         if (v == null || v.getValue() == null || v.getValue().length == 0) {
             return IntegerResourceVersion.notExisting();
         }
@@ -153,8 +145,7 @@ public class ConsulKVStateHandleStore<T extends Serializable>
     @Override
     public RetrievableStateHandle<T> getAndLock(String name) throws Exception {
         String key = handleKey(name);
-        Response<GetBinaryValue> r = client.getKVBinaryValue(key, QueryParams.DEFAULT);
-        GetBinaryValue v = r.getValue();
+        VertxConsulClientAdapter.BinaryKeyValue v = client.getKVBinaryValue(key);
         if (v == null || v.getValue() == null || v.getValue().length == 0) {
             throw new StateHandleStore.NotExistException("No state handle for " + name);
         }
@@ -162,9 +153,7 @@ public class ConsulKVStateHandleStore<T extends Serializable>
         RetrievableStateHandle<T> handle = deserialize(v.getValue());
         String sid = sessionHolder.getSessionId();
         if (sid != null && !sid.isEmpty()) {
-            PutParams lockParams = new PutParams();
-            lockParams.setAcquireSession(sid);
-            Boolean acquired = client.setKVBinaryValue(lockKey(name), new byte[]{1}, lockParams).getValue();
+            Boolean acquired = client.setKVBinaryValue(lockKey(name), new byte[]{1}, null, sid, null);
             if (Boolean.TRUE.equals(acquired)) {
                 lockedNames.add(name);
             }
@@ -174,7 +163,7 @@ public class ConsulKVStateHandleStore<T extends Serializable>
 
     @Override
     public List<Tuple2<RetrievableStateHandle<T>, String>> getAllAndLock() throws Exception {
-        List<String> keys = client.getKVKeysOnly(basePath.isEmpty() ? "/" : basePath + "/", QueryParams.DEFAULT).getValue();
+        List<String> keys = client.getKVKeysOnly(basePath.isEmpty() ? "/" : basePath + "/");
         if (keys == null) return Collections.emptyList();
         List<Tuple2<RetrievableStateHandle<T>, String>> result = new ArrayList<>();
         for (String fullKey : keys) {
@@ -195,7 +184,7 @@ public class ConsulKVStateHandleStore<T extends Serializable>
 
     @Override
     public Collection<String> getAllHandles() throws Exception {
-        List<String> keys = client.getKVKeysOnly(basePath.isEmpty() ? "/" : basePath + "/", QueryParams.DEFAULT).getValue();
+        List<String> keys = client.getKVKeysOnly(basePath.isEmpty() ? "/" : basePath + "/");
         if (keys == null) return Collections.emptyList();
         Set<String> names = new HashSet<>();
         for (String fullKey : keys) {
@@ -242,10 +231,8 @@ public class ConsulKVStateHandleStore<T extends Serializable>
     @Override
     public void release(String name) throws Exception {
         if (!lockedNames.contains(name)) return;
-        PutParams params = new PutParams();
-        params.setReleaseSession(sessionHolder.getSessionId());
         try {
-            client.setKVBinaryValue(lockKey(name), new byte[0], params);
+            client.setKVBinaryValue(lockKey(name), new byte[0], null, null, sessionHolder.getSessionId());
         } finally {
             lockedNames.remove(name);
         }
