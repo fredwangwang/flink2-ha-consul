@@ -1,0 +1,29 @@
+# High-Level Requirements
+
+Implement a High Availability (HA) backend for Apache Flink using Consul, targeting Flink versions **2.1** and **2.2**.
+
+## Reference Implementation
+
+- Use **ZooKeeper HA** as the reference:
+  - Class: `org.apache.flink.runtime.highavailability.zookeeper.ZooKeeperLeaderElectionHaServices`
+  - Config / wiring: `org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils`
+  - Docs: https://nightlies.apache.org/flink/flink-docs-release-2.2/docs/deployment/ha/zookeeper_ha/
+
+- Replace the ZooKeeper-backed implementation with a Consul-backed one while supporting **equivalent configuration options** (cluster ID, root path, timeouts, etc.) where applicable.
+
+## Consul Authentication
+
+- Support **token-based authentication only** (no ACL/other auth methods required for this scope).
+
+## Legacy Reference
+
+- The `flink-consul` folder contains a legacy Consul HA backend for Flink 1.4. The current Flink codebase has changed significantly, so that code is **not directly reusable**, but can still serve as a **reference** for Consul usage patterns.
+
+---
+
+# Technical Choices
+
+- **Java**: Java 17; follow common Java best practices.
+- **Consul client**: `com.ecwid.consul`.
+- **Build**: Maven, with **multi-profile** setup to produce artifacts for different Flink versions (e.g. 2.1 vs 2.2).
+- **Package name**: `com.fredwangwang....` (to be completed as needed).
