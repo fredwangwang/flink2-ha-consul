@@ -30,7 +30,7 @@ Set the following in `conf/flink-conf.yaml` (or equivalent) to use Consul HA:
 
 ```yaml
 # Use the Consul HA factory (required)
-high-availability: com.fredwangwang.flink.consul.ha.ConsulHaServicesFactory
+high-availability.type: com.fredwangwang.flink.consul.ha.ConsulHaServicesFactory
 
 # Standard HA options (same as ZooKeeper HA)
 high-availability.storageDir: hdfs:///flink/ha
