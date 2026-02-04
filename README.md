@@ -1,6 +1,6 @@
 # Flink Consul HA
 
-Consul-based High Availability backend for Apache Flink 2.1 and 2.2.
+Consul-based High Availability backend for Apache Flink 2.0+
 
 ## Requirements
 
