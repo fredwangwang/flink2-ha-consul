@@ -22,7 +22,7 @@ Build for **Flink 2.1**:
 mvn clean package -Dflink.version=2.1
 ```
 
-The JAR will be in `target/flink-consul-ha-1.0.0-SNAPSHOT.jar`. Place it in Flink's `lib/` directory (or use as a plugin).
+The JAR will be in `target/flink2-ha-consul-1.0.0-SNAPSHOT.jar`. Place it in Flink's `lib/` directory (or use as a plugin).
 
 ## Configuration
 
