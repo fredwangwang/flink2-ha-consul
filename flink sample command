@@ -1,0 +1,39 @@
+# (0) Add Consul HA backend to flink-conf.yaml
+
+```yaml
+high-availability:
+  type: com.fredwangwang.flink.consul.ha.ConsulHaServicesFactory
+  # Path where metadata for master recovery is persisted (state handles, etc.).
+  # Use a local path for single-node testing; use HDFS/S3 for production.
+  storageDir: file:///tmp/flink-ha
+  cluster-id: default
+  consul:
+    host: 127.0.0.1
+    port: 8500
+    acl-token: d4add282-d5e1-83b7-e023-d30f3b6f64b8
+    path:
+      root: flink
+      leader: leader
+      execution-plans: execution-plans
+      jobs: jobs
+    session-ttl: 30s
+    blocking-query-wait: 30s
+```
+
+# (1) Start Cluster (ensure Consul is running at 127.0.0.1:8500 with ACL token in localconsultoken)
+$ ./bin/start-cluster.sh
+
+# (2) You can now access the Flink Web Interface on http://localhost:8888
+
+# (3) Submit example job (detached: -d so it runs in background)
+$ ./bin/flink run -d ./examples/streaming/TopSpeedWindowing.jar
+
+# (4) Verify HA: Consul KV should have leader keys under flink/default/leader/
+$ curl -s -H "X-Consul-Token: $(cat ../localconsultoken)" "http://127.0.0.1:8500/v1/kv/flink?keys=true"
+
+# (5) List jobs (REST)
+$ curl -s http://localhost:8888/jobs/overview
+
+# (6) Stop the cluster again
+$ ./bin/stop-cluster.sh
+
