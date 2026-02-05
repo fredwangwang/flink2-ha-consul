@@ -27,8 +27,6 @@ import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-
 /**
  * Creates a Consul client from Flink configuration using Vert.x Consul client.
  * Supports ACL token via {@code high-availability.consul.acl-token}.

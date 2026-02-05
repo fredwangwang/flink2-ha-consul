@@ -18,7 +18,6 @@
 
 package com.fredwangwang.flink.consul.ha;
 
-import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.checkpoint.ConsulCheckpointRecoveryFactory;
 import com.fredwangwang.flink.consul.ha.configuration.ConsulHighAvailabilityOptions;
 import com.fredwangwang.flink.consul.ha.executionplan.ConsulExecutionPlanStoreUtil;
@@ -38,7 +37,6 @@ import org.apache.flink.runtime.jobmanager.DefaultExecutionPlanStore;
 import org.apache.flink.runtime.jobmanager.ExecutionPlanStore;
 import org.apache.flink.runtime.leaderretrieval.DefaultLeaderRetrievalService;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalService;
-import org.apache.flink.runtime.util.ZooKeeperUtils;
 import org.apache.flink.streaming.api.graph.ExecutionPlan;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;

@@ -18,7 +18,6 @@
 
 package com.fredwangwang.flink.consul.ha;
 
-import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.blob.BlobStoreService;
 import org.apache.flink.runtime.blob.BlobUtils;
