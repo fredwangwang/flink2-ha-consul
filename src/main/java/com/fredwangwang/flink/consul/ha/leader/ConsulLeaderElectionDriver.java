@@ -64,7 +64,8 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
         this.leaderLatchKey = ConsulUtils.getLeaderLatchKey(configuration);
         this.sessionHolder = new ConsulSessionHolder();
         int sessionTtl = (int) configuration.get(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_TTL).getSeconds();
-        this.sessionActivator = new ConsulSessionActivator(client, executor, sessionTtl, sessionHolder);
+        long lockDelay = configuration.get(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_LOCK_DELAY).getSeconds();
+        this.sessionActivator = new ConsulSessionActivator(client, executor, sessionTtl, lockDelay, sessionHolder);
         sessionActivator.start();
         executor.execute(this::leaderLatchLoop);
     }

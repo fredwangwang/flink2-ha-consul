@@ -39,6 +39,7 @@ class ConsulHighAvailabilityOptionsTest {
         assertEquals("execution-plans", c.get(ConsulHighAvailabilityOptions.HA_CONSUL_EXECUTION_PLANS_PATH));
         assertEquals("jobs", c.get(ConsulHighAvailabilityOptions.HA_CONSUL_JOBS_PATH));
         assertEquals(Duration.ofSeconds(30), c.get(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_TTL));
+        assertEquals(Duration.ofSeconds(15), c.get(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_LOCK_DELAY));
         assertEquals(Duration.ofSeconds(30), c.get(ConsulHighAvailabilityOptions.HA_CONSUL_BLOCKING_QUERY_WAIT));
     }
 
@@ -55,10 +56,12 @@ class ConsulHighAvailabilityOptionsTest {
         c.set(ConsulHighAvailabilityOptions.HA_CONSUL_PORT, 8500);
         c.set(ConsulHighAvailabilityOptions.HA_CONSUL_ACL_TOKEN, "secret");
         c.set(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_TTL, Duration.ofSeconds(60));
+        c.set(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_LOCK_DELAY, Duration.ofSeconds(20));
 
         assertEquals("127.0.0.1", c.get(ConsulHighAvailabilityOptions.HA_CONSUL_HOST));
         assertEquals(8500, (int) c.get(ConsulHighAvailabilityOptions.HA_CONSUL_PORT));
         assertEquals("secret", c.get(ConsulHighAvailabilityOptions.HA_CONSUL_ACL_TOKEN));
         assertEquals(Duration.ofSeconds(60), c.get(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_TTL));
+        assertEquals(Duration.ofSeconds(20), c.get(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_LOCK_DELAY));
     }
 }

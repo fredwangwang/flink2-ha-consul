@@ -92,5 +92,16 @@ public final class ConsulHighAvailabilityOptions {
                     .defaultValue(Duration.ofSeconds(30))
                     .withDescription("Consul session TTL for leader latch; session is invalidated if not renewed.");
 
+    /**
+     * Session lock delay (e.g. "15s"). When a session is invalidated, locks are not released for
+     * this duration. Must be greater than 0 when set. Consul default is 15s.
+     */
+    public static final ConfigOption<Duration> HA_CONSUL_SESSION_LOCK_DELAY =
+            ConfigOptions.key("high-availability.consul.session-lock-delay")
+                    .durationType()
+                    .defaultValue(Duration.ofSeconds(15))
+                    .withDescription(
+                            "Consul session lock delay; duration for which locks are held after session invalidation. Must be > 0.");
+
     private ConsulHighAvailabilityOptions() {}
 }

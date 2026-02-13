@@ -36,6 +36,7 @@ public final class ConsulSessionActivator {
     private final VertxConsulClientAdapter client;
     private final Executor executor;
     private final int sessionTtlSeconds;
+    private final long lockDelaySeconds;
     private volatile boolean running;
     private final ConsulSessionHolder holder;
 
@@ -43,10 +44,12 @@ public final class ConsulSessionActivator {
             VertxConsulClientAdapter client,
             Executor executor,
             int sessionTtlSeconds,
+            long lockDelaySeconds,
             ConsulSessionHolder holder) {
         this.client = Preconditions.checkNotNull(client);
         this.executor = Preconditions.checkNotNull(executor);
         this.sessionTtlSeconds = Math.max(10, sessionTtlSeconds);
+        this.lockDelaySeconds = Math.max(0, lockDelaySeconds);
         this.holder = Preconditions.checkNotNull(holder);
     }
 
@@ -85,7 +88,7 @@ public final class ConsulSessionActivator {
     }
 
     private void createSession() {
-        String id = client.sessionCreate("flink-ha", sessionTtlSeconds);
+        String id = client.sessionCreate("flink-ha", sessionTtlSeconds, lockDelaySeconds);
         if (id != null) {
             holder.setSessionId(id);
             LOG.debug("Consul session created: {}", id);

@@ -218,9 +218,17 @@ public final class VertxConsulClientAdapter {
 
     /** Create a session; returns session ID. */
     public String sessionCreate(String name, int ttlSeconds) {
+        return sessionCreate(name, ttlSeconds, 0);
+    }
+
+    /** Create a session with optional lock delay; returns session ID. */
+    public String sessionCreate(String name, int ttlSeconds, long lockDelaySeconds) {
         SessionOptions opts = new SessionOptions()
                 .setName(name)
                 .setTtl((long) ttlSeconds);
+        if (lockDelaySeconds > 0) {
+            opts.setLockDelay(lockDelaySeconds);
+        }
         try {
             return consulClient.createSessionWithOptions(opts)
                     .toCompletionStage()

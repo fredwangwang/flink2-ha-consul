@@ -74,8 +74,9 @@ public class ConsulLeaderElectionHaServices extends AbstractHaServices {
         this.client = Preconditions.checkNotNull(client);
         this.stateStoreSessionHolder = new ConsulSessionHolder();
         int sessionTtl = (int) configuration.get(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_TTL).getSeconds();
+        long lockDelay = configuration.get(ConsulHighAvailabilityOptions.HA_CONSUL_SESSION_LOCK_DELAY).getSeconds();
         this.stateStoreSessionActivator = new ConsulSessionActivator(
-                client, executor, sessionTtl, stateStoreSessionHolder);
+                client, executor, sessionTtl, lockDelay, stateStoreSessionHolder);
         stateStoreSessionActivator.start();
     }
 
