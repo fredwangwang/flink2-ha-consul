@@ -18,12 +18,17 @@
 
 package com.fredwangwang.flink.consul.ha;
 
+import com.fredwangwang.flink.consul.ha.configuration.ConsulHighAvailabilityOptions;
+import io.vertx.core.http.HttpClosedException;
 import org.apache.flink.api.common.JobID;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.HighAvailabilityOptions;
-import com.fredwangwang.flink.consul.ha.configuration.ConsulHighAvailabilityOptions;
 
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketException;
 import java.util.Arrays;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -145,6 +150,36 @@ public final class ConsulUtils {
     public static String getPathForJob(JobID jobId) {
         checkNotNull(jobId, "Job ID");
         return jobId.toString();
+    }
+
+    /**
+     * Returns true if the failure is likely transient (connection closed, timeout, network).
+     * Used to mirror ZooKeeper HA behavior: on connection suspension, log and retry instead
+     * of reporting a fatal error or forwarding to the leader election listener.
+     */
+    public static boolean isTransientConsulFailure(Throwable t) {
+        Throwable current = t;
+        while (current != null) {
+            if (current instanceof IOException
+                    || current instanceof TimeoutException
+                    || current instanceof HttpClosedException
+                    || current instanceof ConnectException
+                    || current instanceof SocketException) {
+                return true;
+            }
+            String msg = current.getMessage();
+            if (msg != null) {
+                String lower = msg.toLowerCase();
+                if ((lower.contains("connection") && (lower.contains("closed") || lower.contains("reset")))
+                        || lower.contains("timeout")
+                        || lower.contains("unavailable")
+                        || lower.contains("connection refused")) {
+                    return true;
+                }
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private ConsulUtils() {}

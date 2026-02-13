@@ -6,7 +6,7 @@
 
     <groupId>com.fredwangwang</groupId>
     <artifactId>flink2-ha-consul</artifactId>
-    <version>1.0.0-${flink.version}${version.suffix}</version>
+    <version>1.0.1-${flink.version}${version.suffix}</version>
     <packaging>jar</packaging>
     <name>Flink Consul HA</name>
     <description>Consul-based High Availability backend for Apache Flink 2.0/2.1/2.2</description>

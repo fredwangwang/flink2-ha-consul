@@ -18,8 +18,8 @@
 
 package com.fredwangwang.flink.consul.ha.leader;
 
-import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.ConsulUtils;
+import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import com.fredwangwang.flink.consul.ha.configuration.ConsulHighAvailabilityOptions;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.leaderelection.LeaderInformation;
@@ -42,6 +42,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ConsulLeaderRetrievalDriver implements LeaderRetrievalDriver {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConsulLeaderRetrievalDriver.class);
+
+    private static final long RETRY_INITIAL_DELAY_MS = 1_000L;
+    private static final long RETRY_MAX_DELAY_MS = 5_000L;
+    private static final double RETRY_BACKOFF_MULTIPLIER = 2.0;
 
     private final VertxConsulClientAdapter client;
     private final String connectionInfoKey;
@@ -79,10 +83,12 @@ public class ConsulLeaderRetrievalDriver implements LeaderRetrievalDriver {
 
     private void watchLoop() {
         long index = 0;
+        long retryDelayMs = RETRY_INITIAL_DELAY_MS;
         while (running.get()) {
             try {
                 VertxConsulClientAdapter.BinaryKeyValue value = client.getKVBinaryValue(connectionInfoKey, index, waitTimeSeconds);
                 if (!running.get()) break;
+                retryDelayMs = RETRY_INITIAL_DELAY_MS; // reset backoff on success
                 if (value != null) {
                     index = value.getModifyIndex();
                     byte[] data = value.getValue();
@@ -94,11 +100,22 @@ public class ConsulLeaderRetrievalDriver implements LeaderRetrievalDriver {
             } catch (Exception e) {
                 if (!running.get()) break;
                 ExceptionUtils.checkInterrupted(e);
-                fatalErrorHandler.onFatalError(new LeaderRetrievalException("Consul leader retrieval failed", e));
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
+                if (ConsulUtils.isTransientConsulFailure(e)) {
+                    LOG.warn(
+                            "Connection to Consul suspended, waiting for reconnection. Key: {}, error: {}",
+                            connectionInfoKey,
+                            e.getMessage());
+                    LOG.debug("Consul leader retrieval transient failure", e);
+                    eventHandler.notifyLeaderAddress(LeaderInformation.empty());
+                    try {
+                        Thread.sleep(retryDelayMs);
+                        retryDelayMs = Math.min((long) (retryDelayMs * RETRY_BACKOFF_MULTIPLIER), RETRY_MAX_DELAY_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                } else {
+                    fatalErrorHandler.onFatalError(new LeaderRetrievalException("Consul leader retrieval failed", e));
                     break;
                 }
             }

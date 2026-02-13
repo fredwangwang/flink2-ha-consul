@@ -186,8 +186,15 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                LOG.warn("Leader latch loop error", e);
-                listener.onError(e);
+                if (ConsulUtils.isTransientConsulFailure(e)) {
+                    LOG.warn(
+                            "Connection to Consul suspended, waiting for reconnection. Error: {}",
+                            e.getMessage());
+                    LOG.debug("Consul leader election transient failure", e);
+                } else {
+                    LOG.warn("Leader latch loop error", e);
+                    listener.onError(e);
+                }
                 try {
                     Thread.sleep(3000);
                 } catch (InterruptedException ie) {
