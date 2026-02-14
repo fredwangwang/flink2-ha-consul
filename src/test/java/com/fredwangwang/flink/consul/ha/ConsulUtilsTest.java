@@ -52,6 +52,17 @@ class ConsulUtilsTest {
     }
 
     @Test
+    void toKeyStripsLeadingAndTrailingSlashesFromSegments() {
+        assertEquals("a/b/c", ConsulUtils.toKey("a", "b", "c"));
+        assertEquals("a/b/c", ConsulUtils.toKey("/a", "b", "c"));
+        assertEquals("a/b/c", ConsulUtils.toKey("a/", "b", "c"));
+        assertEquals("a/b/c", ConsulUtils.toKey("/a/", "/b/", "/c/"));
+        assertEquals("flink/default/leader", ConsulUtils.toKey("flink/", "/default", "/leader/"));
+        assertEquals("a/b", ConsulUtils.toKey("//a//", "//b//"));
+        assertEquals("a", ConsulUtils.toKey("///a///"));
+    }
+
+    @Test
     void getConsulBasePath() {
         Configuration c = baseConfig();
         assertEquals("flink/default", ConsulUtils.getConsulBasePath(c));

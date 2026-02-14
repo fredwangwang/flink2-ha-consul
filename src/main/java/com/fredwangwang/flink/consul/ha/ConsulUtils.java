@@ -139,10 +139,11 @@ public final class ConsulUtils {
         return toKey(getExecutionPlansPath(configuration), jobId.toString());
     }
 
-    /** Build a Consul KV key from path segments (no leading slash; segments trimmed). */
+    /** Build a Consul KV key from path segments (no leading slash; segments trimmed; leading/trailing slashes removed to avoid "//"). */
     public static String toKey(String... segments) {
         return Arrays.stream(segments)
-                .map(s -> s == null ? "" : s.trim())
+                .map(s -> s == null ? "" : s.strip())
+                .map(s -> s.replaceAll("^/+|/+$", ""))
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.joining("/"));
     }
