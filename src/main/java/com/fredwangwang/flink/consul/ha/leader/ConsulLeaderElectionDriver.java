@@ -35,7 +35,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Consul-based {@link LeaderElectionDriver}. Uses a Consul session and KV key (leader latch)
+ * Consul-based {@link LeaderElectionDriver}. Uses a Consul session and KV key
+ * (leader latch)
  * for leader election; writes component leader information to separate KV keys.
  */
 public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
@@ -77,7 +78,8 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
 
     @Override
     public void publishLeaderInformation(String componentId, LeaderInformation leaderInformation) {
-        if (!running.get() || !hasLeadership) return;
+        if (!running.get() || !hasLeadership)
+            return;
         String key = ConsulUtils.getConnectionInfoKey(configuration, componentId);
         byte[] data = LeaderInformationCodec.toBytes(leaderInformation);
         try {
@@ -103,7 +105,8 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
 
     @Override
     public void close() throws Exception {
-        if (!running.compareAndSet(true, false)) return;
+        if (!running.compareAndSet(true, false))
+            return;
         LOG.info("Closing ConsulLeaderElectionDriver");
         sessionActivator.stop();
         // Delete the leader latch key entirely (not just release).
@@ -125,7 +128,7 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
         // This helps distinguish initial cluster startup (no data yet)
         // from cluster shutdown (data was deleted by cleanup).
         boolean clusterDataSeenExists = false;
-        
+
         while (running.get()) {
             try {
                 String sessionId = sessionHolder.getSessionId();
@@ -137,38 +140,38 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
                     Thread.sleep(1000);
                     continue;
                 }
-                
+
                 // Check if any cluster data exists under the base path.
                 boolean dataExists = clusterDataExists();
-                
+
                 if (dataExists) {
                     clusterDataSeenExists = true;
                 }
-                
+
                 if (clusterDataSeenExists && !dataExists) {
-                    // We previously saw cluster data (latch key or other keys), but now 
+                    // We previously saw cluster data (latch key or other keys), but now
                     // there's no cluster data at all. This means internalCleanup() was called.
                     // This mimics ZooKeeper behavior where followers fail with NoNodeException
                     // when parent paths are deleted during cleanup, triggering cluster shutdown.
                     LOG.info("Cluster HA data no longer exists after being seen previously. " +
                             "Cluster has been cleaned up, shutting down.");
                     listener.onError(new Exception(
-                        "Cluster HA data under base path no longer exists. " +
-                        "Cluster has been cleaned up, shutting down."));
+                            "Cluster HA data under base path no longer exists. " +
+                                    "Cluster has been cleaned up, shutting down."));
                     break;
                 }
-                
+
                 if (!clusterDataSeenExists) {
                     // No cluster data seen yet - this is initial startup.
                     // We can try to become the leader and create the latch key.
                     LOG.info("No cluster data seen yet, initiate new cluster.");
                 }
-                
+
                 boolean acquired = tryAcquireLatchKey(sessionId);
                 if (acquired && !hasLeadership) {
                     clusterDataSeenExists = true; // If we acquired, key definitely exists now
                     hasLeadership = true;
-                    UUID leaderSessionId = UUID.randomUUID();
+                    UUID leaderSessionId = UUID.fromString(sessionId);
                     LOG.info("Consul leadership acquired with session {}", leaderSessionId);
                     listener.onGrantLeadership(leaderSessionId);
                 } else if (!acquired && hasLeadership) {
@@ -206,19 +209,17 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
     }
 
     private boolean tryAcquireLatchKey(String sessionId) {
-        try {
-            Boolean acquired = client.setKVBinaryValue(leaderLatchKey, new byte[]{1}, null, sessionId, null);
-            return Boolean.TRUE.equals(acquired);
-        } catch (Exception e) {
-            return false;
-        }
+        Boolean acquired = client.setKVBinaryValue(leaderLatchKey, new byte[] { 1 }, null, sessionId, null);
+        return Boolean.TRUE.equals(acquired);
     }
 
     /**
-     * Deletes the leader latch key entirely. This is called during close() to ensure
+     * Deletes the leader latch key entirely. This is called during close() to
+     * ensure
      * that followers cannot re-acquire leadership after the leader shuts down.
      * This mimics ZooKeeper's ephemeral node behavior where nodes are deleted when
-     * the session ends, causing followers to receive errors when accessing the paths.
+     * the session ends, causing followers to receive errors when accessing the
+     * paths.
      */
     private void deleteLeaderLatchKey() {
         try {
@@ -228,20 +229,16 @@ public class ConsulLeaderElectionDriver implements LeaderElectionDriver {
             LOG.warn("Failed to delete leader latch key", e);
         }
     }
-    
+
     /**
      * Checks if any keys exist under the cluster base path.
      * Used to detect if internalCleanup() was called, which deletes ALL keys.
-     * This handles the edge case where a follower starts after cleanup has already occurred.
+     * This handles the edge case where a follower starts after cleanup has already
+     * occurred.
      */
     private boolean clusterDataExists() {
-        try {
-            String basePath = ConsulUtils.getConsulBasePath(configuration);
-            List<String> keys = client.getKVKeysOnly(basePath.isEmpty() ? "/" : basePath + "/");
-            return keys != null && !keys.isEmpty();
-        } catch (Exception e) {
-            LOG.debug("Error checking cluster data existence", e);
-            return false;
-        }
+        String basePath = ConsulUtils.getConsulBasePath(configuration);
+        List<String> keys = client.getKVKeysOnly(basePath.isEmpty() ? "/" : basePath + "/");
+        return keys != null && !keys.isEmpty();
     }
 }

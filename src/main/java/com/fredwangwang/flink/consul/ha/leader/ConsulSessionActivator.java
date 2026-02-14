@@ -18,6 +18,7 @@
 
 package com.fredwangwang.flink.consul.ha.leader;
 
+import com.fredwangwang.flink.consul.ha.ConsulUtils;
 import com.fredwangwang.flink.consul.ha.VertxConsulClientAdapter;
 import org.apache.flink.util.Preconditions;
 import org.slf4j.Logger;
@@ -26,7 +27,8 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.Executor;
 
 /**
- * Creates and renews a Consul session. The session is used to bind the leader latch key;
+ * Creates and renews a Consul session. The session is used to bind the leader
+ * latch key;
  * when the session expires or is destroyed, the key is released.
  */
 public final class ConsulSessionActivator {
@@ -65,17 +67,14 @@ public final class ConsulSessionActivator {
     private void run() {
         LOG.debug("ConsulSessionActivator started");
         while (running) {
-            try {
-                if (holder.getSessionId() == null || holder.getSessionId().isEmpty()) {
-                    createSession();
-                } else {
-                    renewSession();
-                }
-            } catch (Exception e) {
-                LOG.warn("Consul session create/renew failed, will retry", e);
-                holder.setSessionId(null);
+            if (holder.getSessionId() == null || holder.getSessionId().isEmpty()) {
+                createSession();
+            } else {
+                renewSession();
             }
-            if (!running) break;
+
+            if (!running)
+                break;
             try {
                 Thread.sleep(1000L * (sessionTtlSeconds / 2));
             } catch (InterruptedException e) {
@@ -88,28 +87,40 @@ public final class ConsulSessionActivator {
     }
 
     private void createSession() {
-        String id = client.sessionCreate("flink-ha", sessionTtlSeconds, lockDelaySeconds);
-        if (id != null) {
-            holder.setSessionId(id);
-            LOG.debug("Consul session created: {}", id);
+        try {
+            String id = client.sessionCreate("flink-ha", sessionTtlSeconds, lockDelaySeconds);
+            if (id != null) {
+                holder.setSessionId(id);
+                LOG.debug("Consul session created: {}", id);
+            }
+        } catch (Exception e) {
+            LOG.warn("Consul session create failed: {}", e.getMessage());
+            holder.setSessionId(null);
         }
     }
 
     private void renewSession() {
         String id = holder.getSessionId();
-        if (id == null || id.isEmpty()) return;
+        if (id == null || id.isEmpty())
+            return;
         try {
             client.renewSession(id);
             LOG.trace("Consul session renewed: {}", id);
         } catch (Exception e) {
-            LOG.warn("Consul session renew failed, session may be invalid", e);
-            holder.setSessionId(null);
+            if (ConsulUtils.isTransientConsulFailure(e)) {
+                LOG.warn("Consul session renew failed (transient), will retry: {}", e.getMessage());
+            } else {
+                LOG.warn("Consul session renew failed, session may be invalid", e);
+                holder.setSessionId(null);
+            }
         }
     }
 
     private void destroySession() {
         String id = holder.getSessionId();
-        if (id == null || id.isEmpty()) return;
+        if (id == null || id.isEmpty())
+            return;
+
         try {
             client.sessionDestroy(id);
             LOG.debug("Consul session destroyed: {}", id);

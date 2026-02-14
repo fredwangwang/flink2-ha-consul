@@ -174,7 +174,8 @@ public final class ConsulUtils {
                 if ((lower.contains("connection") && (lower.contains("closed") || lower.contains("reset")))
                         || lower.contains("timeout")
                         || lower.contains("unavailable")
-                        || lower.contains("connection refused")) {
+                        || lower.contains("connection refused")
+                        || lower.contains("no cluster leader")) {
                     return true;
                 }
             }
